@@ -3,15 +3,24 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
-import json
+import sqlite3
 
 
 load_dotenv()
 
 ADMIN_ID = 611658274445721618
 
-# Chemin racine des membres
-MEMBERS_DIR = "DDGquetes/Membres"
+conn = sqlite3.connect("progress.db")
+cursor = conn.cursor()
+
+# Création de la table si elle n'existe pas
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS progress (
+        user_id TEXT PRIMARY KEY,
+        progress INTEGER NOT NULL
+    )
+''')
+conn.commit()
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -90,23 +99,13 @@ def get_progress_path(user: discord.User):
     return os.path.join(get_member_dir(user), "queteddg.json")
 
 def load_member_progress(user: discord.User):
-    path = get_progress_path(user)
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("progress", 0)
-        except Exception:
-            return 0
-    else:
-        return 0
+    cursor.execute("SELECT progress FROM progress WHERE user_id = ?", (str(user.id),))
+    result = cursor.fetchone()
+    return result[0] if result else 0
 
 def save_member_progress(user: discord.User, progress: int):
-    dir_path = get_member_dir(user)
-    os.makedirs(dir_path, exist_ok=True)
-    path = get_progress_path(user)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({"progress": progress}, f, ensure_ascii=False, indent=4)
+    cursor.execute("INSERT OR REPLACE INTO progress (user_id, progress) VALUES (?, ?)", (str(user.id), progress))
+    conn.commit()
 
 # Commande 
 @tree.command(name="ddg", description="Let's GO CHAFER !")
