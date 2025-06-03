@@ -3,13 +3,10 @@ from discord.ext import commands
 from discord import app_commands
 import os
 from dotenv import load_dotenv
+import json
 import sqlite3
 
-
-load_dotenv()
-
-ADMIN_ID = 611658274445721618
-
+# Connexion à SQLite
 conn = sqlite3.connect("progress.db")
 cursor = conn.cursor()
 
@@ -21,6 +18,13 @@ cursor.execute('''
     )
 ''')
 conn.commit()
+
+load_dotenv()
+
+ADMIN_ID = 611658274445721618
+
+# Chemin racine des membres
+MEMBERS_DIR = "DDGquetes/Membres"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -103,9 +107,11 @@ def load_member_progress(user: discord.User):
     result = cursor.fetchone()
     return result[0] if result else 0
 
+
 def save_member_progress(user: discord.User, progress: int):
     cursor.execute("INSERT OR REPLACE INTO progress (user_id, progress) VALUES (?, ?)", (str(user.id), progress))
     conn.commit()
+
 
 # Commande 
 @tree.command(name="ddg", description="Let's GO CHAFER !")
@@ -209,7 +215,4 @@ async def on_ready():
     print(f"✅ Connecté en tant que {bot.user}")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
-
-
-
 
